@@ -1,9 +1,12 @@
 import * as d3 from 'https://cdn.skypack.dev/d3@7'
 
+sessionStorage.removeItem('countries')
+
 // lookup location: https://extreme-ip-lookup.com/json/?key=H81BYHhmdO53CiVsIRZc
 
 const DEFAULT_YEAR = 2016
 const DEFAULT_REGION = 'Western Europe'
+const DEFAULT_CATEGORY = 'hf_score'
 
 const colors = [ '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999' ]
 
@@ -39,11 +42,18 @@ const triggerSelectedCountries = (countryString) => {
 
     if (iso_codes.length === 0) {
         updateBarChart(regional_data)
-        getLineChartData(['AUT'])
+        updateLineChart(getLineChartData([ 'AUT' ]))
+        scatterPlot.update(allCountriesData)
     } else {
         updateBarChart(getCountryData(iso_codes), true)
         updateLineChart(getLineChartData(iso_codes))
+        scatterPlot.update(getRegionalData(getRegionForIso(iso_codes)))
     }
+}
+
+const getRegionForIso = (iso_codes) => {
+    const regions = iso_codes.map(iso => data.get(DEFAULT_YEAR).filter(el => el.iso === iso)[0].region)
+    return [ ...new Set(regions) ]
 }
 
 const getAllRegions = () => {
@@ -64,8 +74,8 @@ const getLineChartData = (iso_codes) => {
 
 const getAllCountriesData = (year = DEFAULT_YEAR) => data.get(year)
 
-const getRegionalData = (year = DEFAULT_YEAR, region = DEFAULT_REGION) => {
-    return data.get(year).filter(e => e.region === region)
+const getRegionalData = (regions = [ DEFAULT_REGION ], year = DEFAULT_YEAR) => {
+    return data.get(year).filter(e => regions.includes(e.region))
 }
 
 const getCountryData = (iso_codes, year = DEFAULT_YEAR) => {
@@ -119,7 +129,7 @@ const updateBarChart = (barData, selected = false) => {
     yAxisBarChart.transition().duration(1000).call(d3.axisLeft(yBarChart))
 
     if (selected) {
-        xSubgroup.range([0, xBarChart.bandwidth()])
+        xSubgroup.range([ 0, xBarChart.bandwidth() ])
 
         barChart.selectAll('.bar-chart-group')
         .data(barData)
@@ -147,9 +157,9 @@ const updateBarChart = (barData, selected = false) => {
         .transition()
         .duration(1000)
         .attr('x', d => xBarChart(d.country))
-        .attr('y', d => yBarChart(d.hf_score))
+        .attr('y', d => yBarChart(d[DEFAULT_CATEGORY]))
         .attr('width', xBarChart.bandwidth())
-        .attr('height', d => height - yBarChart(d.hf_score))
+        .attr('height', d => height - yBarChart(d[DEFAULT_CATEGORY]))
         .attr('fill', '#69b3a2')
     }
 }
@@ -178,6 +188,7 @@ const updateLineChart = (lineData) => {
     lineChart.selectAll('.line')
     .data(lineData)
     .join('path')
+    .attr('class', 'line')
     .attr('fill', 'none')
     .transition()
     .duration(1000)
@@ -186,19 +197,18 @@ const updateLineChart = (lineData) => {
     .attr('d', function (d) {
         return d3.line()
         .x(function (d) { return xLineChart(d.year) })
-        .y(function (d) { return yLineChart(d.d.hf_score) })
+        .y(function (d) { return yLineChart(d.d[DEFAULT_CATEGORY]) })
         (d[1])
     })
 }
 
-updateLineChart(getLineChartData(['AUT']))
+updateLineChart(getLineChartData([ 'AUT' ]))
 
-function Scatterplot (data, {
+function Scatterplot (initialData, {
     x = ([ x ]) => x, // given d in data, returns the (quantitative) x-value
     y = ([ , y ]) => y, // given d in data, returns the (quantitative) y-value
     z = ([ z ]) => z,
     r = 3, // (fixed) radius of dots, in pixels
-    title, // given d in data, returns the title
     inset = r * 2, // inset the default range, in pixels
     insetTop = inset, // inset the default y-range
     insetRight = inset, // inset the default x-range
@@ -210,81 +220,51 @@ function Scatterplot (data, {
     yType = d3.scaleLinear, // type of y-scale
     yDomain, // [ymin, ymax]
     yRange = [ height - margin.bottom - insetBottom, margin.top + insetTop ], // [bottom, top]
-    xLabel, // a label for the x-axis
-    yLabel, // a label for the y-axis
-    xFormat, // a format specifier string for the x-axis
-    yFormat, // a format specifier string for the y-axis
-    halo = '#fff', // color of label halo
-    haloWidth = 3 // padding around the labels
 } = {}) {
-    // Compute values.
-    const X = d3.map(data, x)
-    const Y = d3.map(data, y)
-    const Z = d3.map(data, z)
-    const T = title == null ? null : d3.map(data, title)
-    const I = d3.range(X.length).filter(i => !isNaN(X[i]) && !isNaN(Y[i]))
-
-    // Compute default domains.
-    if (xDomain === undefined) xDomain = d3.extent(X)
-    if (yDomain === undefined) yDomain = d3.extent(Y)
-
-    // Construct scales and axes.
-    const xScale = xType(xDomain, xRange)
-    const yScale = yType(yDomain, yRange)
-    const xAxis = d3.axisBottom(xScale).ticks(width / 80, xFormat)
-    const yAxis = d3.axisLeft(yScale).ticks(height / 50, yFormat)
-
     const svg = createChart('scatterPlot')
-
-    svg.append('g')
-    .attr('transform', `translate(0,${ height - margin.bottom })`)
-    .call(xAxis)
-    .call(g => g.select('.domain').remove())
-    .call(g => g.selectAll('.tick line').clone()
-    .attr('y2', margin.top + margin.bottom - height)
-    .attr('stroke-opacity', 0.1))
-    .call(g => g.append('text')
-    .attr('x', width)
-    .attr('y', margin.bottom - 4)
-    .attr('fill', 'currentColor')
-    .attr('text-anchor', 'end')
-    .text(xLabel))
-
-    svg.append('g')
-    .attr('transform', `translate(${ margin.left },0)`)
-    .call(yAxis)
-    .call(g => g.select('.domain').remove())
-    .call(g => g.selectAll('.tick line').clone()
-    .attr('x2', width - margin.left - margin.right)
-    .attr('stroke-opacity', 0.1))
-    .call(g => g.append('text')
-    .attr('x', -margin.left)
-    .attr('y', 10)
-    .attr('fill', 'currentColor')
-    .attr('text-anchor', 'start')
-    .text(yLabel))
-
-    if (T) svg.append('g')
-    .attr('font-family', 'sans-serif')
-    .attr('font-size', 10)
-    .attr('stroke-linejoin', 'round')
-    .attr('stroke-linecap', 'round')
-    .selectAll('text')
-    .data(I)
-    .join('text')
-    .attr('dx', 7)
-    .attr('dy', '0.35em')
-    .attr('x', i => xScale(X[i]))
-    .attr('y', i => yScale(Y[i]))
-    .text(i => T[i])
-    .call(text => text.clone(true))
-    .attr('fill', 'none')
-    .attr('stroke', halo)
-    .attr('stroke-width', haloWidth)
 
     const colorsForFill = d3.scaleOrdinal()
     .domain(getAllRegions())
     .range(colors)
+
+    const xAxis = d3.scaleLinear()
+    .domain([ 0, 10 ])
+    .range([ 0, width ])
+
+    svg.append('g')
+    .attr('transform', `translate(0, ${ height })`)
+    .call(d3.axisBottom(xAxis))
+
+    const yAxis = d3.scaleLinear()
+    .domain([ 0, 10 ])
+    .range([ height, 0 ])
+
+    svg.append('g')
+    .call(d3.axisLeft(yAxis))
+
+    const prepare = (d) => {
+        const X = d3.map(d, x)
+        const Y = d3.map(d, y)
+        const Z = d3.map(d, z)
+        const I = d3.range(X.length).filter(i => !isNaN(X[i]) && !isNaN(Y[i]))
+
+        if (xDomain === undefined) xDomain = d3.extent(X)
+        if (yDomain === undefined) yDomain = d3.extent(Y)
+
+        const xScale = xType(xDomain, xRange)
+        const yScale = yType(yDomain, yRange)
+
+        return {
+            X,
+            Y,
+            Z,
+            I,
+            xScale,
+            yScale,
+        }
+    }
+
+    const { X, Y, Z, I, xScale, yScale } = prepare(initialData)
 
     svg.append('g')
     .selectAll('circle')
@@ -294,18 +274,37 @@ function Scatterplot (data, {
     .attr('cx', i => xScale(X[i]))
     .attr('cy', i => yScale(Y[i]))
     .attr('r', r)
+
+    const update = (data) => {
+        const { X, Y, Z, I, xScale, yScale } = prepare(data)
+
+        svg.selectAll('circle')
+        .data(I)
+        .join('circle')
+        .transition()
+        .duration(500)
+        .attr('fill', i => colorsForFill(Z[i]))
+        .attr('cx', i => xScale(X[i]))
+        .attr('cy', i => yScale(Y[i]))
+        .attr('r', r)
+    }
+
+    return {
+        update,
+    }
 }
 
 const allCountriesData = getAllCountriesData()
 
-Scatterplot(allCountriesData, {
-    x: d => d.hf_score,
+const scatterPlot = Scatterplot(allCountriesData, {
+    x: d => d[DEFAULT_CATEGORY],
     y: d => d.pf_score,
     z: d => d.region,
-    title: d => d.iso,
     xLabel: 'hf_score',
     yLabel: 'pf_Score',
 })
+
+//scatterPlot.update(allCountriesData)
 
 const worldMap = createChart('worldMap')
 
@@ -330,19 +329,47 @@ worldMap.append('g')
 )
 .attr('fill', function (d) {
     const country = allCountriesData.find(el => el.iso === d.id)
-    return country ? colorScale(country.hf_score) : '#a1a0a0'
+    return country ? colorScale(country[DEFAULT_CATEGORY]) : '#a1a0a0'
 })
-.on('click', (evt) => {
+.on('click', function (evt) {
     const id = evt.target.__data__.id
+
+    if (!hasCountryValueForCategory(id)) return
+
     let selected = sessionStorage.getItem('countries') || ''
+
+    const selectedPath = d3.select(this)
+    .transition()
+    .duration(500)
 
     if (selected.indexOf(id) === -1) {
         if (selected.split(',').length === 4) return
         selected += `${ id },`
+        selectedPath.style('stroke', 'black')
     } else {
         selected = selected.replace(`${ id },`, '')
+        selectedPath.style('stroke', 'none')
     }
 
     triggerSelectedCountries(selected)
 })
+.on('mouseover', function (evt) {
+    const id = evt.target.__data__.id
 
+    if (!hasCountryValueForCategory(id)) return
+
+    d3.select(this)
+    .style('cursor', 'pointer')
+    .style('opacity', 0.5)
+
+})
+.on('mouseleave', function () {
+    d3.select(this)
+    .style('opacity', 1)
+})
+
+const hasCountryValueForCategory = (iso_code) => {
+    const countryData = data.get(DEFAULT_YEAR).filter(e => e.iso === iso_code)[0]
+
+    return countryData && countryData[DEFAULT_CATEGORY]
+}
