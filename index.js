@@ -8,11 +8,29 @@ const DEFAULT_YEAR = 2016
 const DEFAULT_REGION = 'Western Europe'
 const DEFAULT_CATEGORY = 'hf_score'
 
-const colors = [ '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999' ]
+const colors = d3.schemePaired
+
+const screen = ({
+    width: window.screen.availWidth,
+    height: window.screen.availHeight,
+})
+
+const toastElList = [].slice.call(document.querySelectorAll('.toast'))
+const toastList = toastElList.map((toastEl) => new bootstrap.Toast(toastEl))
+
+const showToast = () => {
+    toastList[0].show()
+}
 
 const margin = { top: 30, right: 30, bottom: 70, left: 60 },
-    width = 460 - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom
+    lineChartWidth = 460 - margin.left - margin.right,
+    lineChartHeight = 400 - margin.top - margin.bottom,
+    barChartWidth = 460 - margin.left - margin.right,
+    barChartHeight = 400 - margin.top - margin.bottom,
+    scatterPlotWidth = 460 - margin.left - margin.right,
+    scatterPlotHeight = 400 - margin.top - margin.bottom,
+    worldMapWidth = 460 - margin.left - margin.right,
+    worldMapHeight = 400 - margin.top - margin.bottom
 
 let data = new Map()
 await d3.csv('./human-freedom-index.csv', function (d) {
@@ -47,7 +65,7 @@ const triggerSelectedCountries = (countryString) => {
     } else {
         updateBarChart(getCountryData(iso_codes), true)
         updateLineChart(getLineChartData(iso_codes))
-        scatterPlot.update(getRegionalData(getRegionForIso(iso_codes)))
+        scatterPlot.update(getRegionalData(getRegionForIso(iso_codes)), iso_codes)
     }
 }
 
@@ -82,31 +100,30 @@ const getCountryData = (iso_codes, year = DEFAULT_YEAR) => {
     return data.get(year).filter(e => iso_codes.includes(e.iso))
 }
 
-const createChart = (id) => {
+const createChart = (id, w = 460, h = 400) => {
     return d3.select(`#${ id }`)
     .append('svg')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
+    .attr('width', w + margin.left + margin.right)
+    .attr('height', h + margin.top + margin.bottom)
     .append('g')
     .attr('transform', `translate(${ margin.left }, ${ margin.top })`)
 }
 
-const barChart = createChart('barChart')
-const lineChart = createChart('lineChart')
+const barChart = createChart('barChart', barChartWidth, barChartHeight)
+const lineChart = createChart('lineChart', lineChartWidth, lineChartHeight)
 
 const regional_data = getRegionalData()
 
 const xBarChart = d3.scaleBand()
-.range([ 0, width ])
+.range([ 0, barChartWidth ])
 .padding([ 0.2 ])
 const xAxisBarChart = barChart.append('g')
-.attr('transform', `translate(0,${ height })`)
+.attr('transform', `translate(0,${ barChartHeight })`)
 
 const yBarChart = d3.scaleLinear()
 .domain([ 0, 10 ])
-.range([ height, 0 ])
+.range([ barChartHeight, 0 ])
 const yAxisBarChart = barChart.append('g')
-.attr('class', 'myYaxis')
 
 const subgroups = [ 'hf_score', 'pf_score', 'ef_score' ]
 
@@ -145,7 +162,7 @@ const updateBarChart = (barData, selected = false) => {
         .attr('x', d => xSubgroup(d.key))
         .attr('y', d => yBarChart(d.value))
         .attr('width', xSubgroup.bandwidth())
-        .attr('height', d => height - yBarChart(d.value))
+        .attr('height', d => barChartHeight - yBarChart(d.value))
         .attr('fill', d => colorGroupBarChart(d.key))
     } else {
         d3.selectAll('.bar-chart-group-bar').remove()
@@ -159,7 +176,7 @@ const updateBarChart = (barData, selected = false) => {
         .attr('x', d => xBarChart(d.country))
         .attr('y', d => yBarChart(d[DEFAULT_CATEGORY]))
         .attr('width', xBarChart.bandwidth())
-        .attr('height', d => height - yBarChart(d[DEFAULT_CATEGORY]))
+        .attr('height', d => barChartHeight - yBarChart(d[DEFAULT_CATEGORY]))
         .attr('fill', '#69b3a2')
     }
 }
@@ -168,14 +185,14 @@ updateBarChart(regional_data)
 
 const xLineChart = d3.scaleLinear()
 .domain([ 2008, 2016 ])
-.range([ 0, width ])
+.range([ 0, lineChartWidth ])
 
 const yLineChart = d3.scaleLinear()
 .domain([ 0, 10 ])
-.range([ height, 0 ])
+.range([ lineChartHeight, 0 ])
 
 lineChart.append('g')
-.attr('transform', `translate(0, ${ height })`)
+.attr('transform', `translate(0, ${ lineChartHeight })`)
 .call(d3.axisBottom(xLineChart).ticks(5))
 
 lineChart.append('g')
@@ -193,7 +210,7 @@ const updateLineChart = (lineData) => {
     .transition()
     .duration(1000)
     .attr('stroke', function (d) { return color(d[0]) })
-    .attr('stroke-width', 1.5)
+    .attr('stroke-width', 2.5)
     .attr('d', function (d) {
         return d3.line()
         .x(function (d) { return xLineChart(d.year) })
@@ -216,10 +233,10 @@ function Scatterplot (initialData, {
     insetLeft = inset, // inset the default x-range
     xType = d3.scaleLinear, // type of x-scale
     xDomain, // [xmin, xmax]
-    xRange = [ margin.left + insetLeft, width - margin.right - insetRight ], // [left, right]
+    xRange = [ margin.left + insetLeft, scatterPlotWidth - margin.right - insetRight ], // [left, right]
     yType = d3.scaleLinear, // type of y-scale
     yDomain, // [ymin, ymax]
-    yRange = [ height - margin.bottom - insetBottom, margin.top + insetTop ], // [bottom, top]
+    yRange = [ scatterPlotHeight - margin.bottom - insetBottom, margin.top + insetTop ], // [bottom, top]
 } = {}) {
     const svg = createChart('scatterPlot')
 
@@ -229,15 +246,15 @@ function Scatterplot (initialData, {
 
     const xAxis = d3.scaleLinear()
     .domain([ 0, 10 ])
-    .range([ 0, width ])
+    .range([ 0, scatterPlotWidth ])
 
     svg.append('g')
-    .attr('transform', `translate(0, ${ height })`)
+    .attr('transform', `translate(0, ${ scatterPlotHeight })`)
     .call(d3.axisBottom(xAxis))
 
     const yAxis = d3.scaleLinear()
     .domain([ 0, 10 ])
-    .range([ height, 0 ])
+    .range([ scatterPlotHeight, 0 ])
 
     svg.append('g')
     .call(d3.axisLeft(yAxis))
@@ -275,15 +292,14 @@ function Scatterplot (initialData, {
     .attr('cy', i => yScale(Y[i]))
     .attr('r', r)
 
-    const update = (data) => {
+    const update = (data, iso_codes = []) => {
         const { X, Y, Z, I, xScale, yScale } = prepare(data)
 
         svg.selectAll('circle')
         .data(I)
         .join('circle')
-        .transition()
-        .duration(500)
         .attr('fill', i => colorsForFill(Z[i]))
+        .attr('opacity', i => iso_codes.length === 0 || iso_codes.includes(data[i].iso) ? 1 : 0.3)
         .attr('cx', i => xScale(X[i]))
         .attr('cy', i => yScale(Y[i]))
         .attr('r', r)
@@ -304,16 +320,14 @@ const scatterPlot = Scatterplot(allCountriesData, {
     yLabel: 'pf_Score',
 })
 
-//scatterPlot.update(allCountriesData)
-
-const worldMap = createChart('worldMap')
+const worldMap = createChart('worldMap', worldMapWidth, worldMapHeight)
 
 const geoData = await d3.json('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
 
 const projection = d3.geoMercator()
 .scale(90)
 .center([ 0, 20 ])
-.translate([ width / 2, height / 2 ])
+.translate([ worldMapWidth / 2, worldMapHeight / 2 ])
 
 const colorScale = d3.scaleThreshold()
 .domain([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ])
@@ -343,7 +357,10 @@ worldMap.append('g')
     .duration(500)
 
     if (selected.indexOf(id) === -1) {
-        if (selected.split(',').length === 4) return
+        if (selected.split(',').length === 4) {
+            showToast()
+            return
+        }
         selected += `${ id },`
         selectedPath.style('stroke', 'black')
     } else {
