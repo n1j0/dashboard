@@ -5,9 +5,7 @@ import {
     getShortSpeakableCategoryName,
     getSpeakableCategoryName,
     margin,
-    regions,
-    shortRegions
-} from '@/composables/helpers'
+} from '~/composables/helpers'
 import * as d3 from 'd3'
 
 export default {
@@ -26,6 +24,10 @@ export default {
             required: true,
         },
         category: {
+            type: String,
+            required: true,
+        },
+        region: {
             type: String,
             required: true,
         },
@@ -68,6 +70,20 @@ export default {
         .attr('y', -15)
         .attr('fill', 'currentColor')
         .attr('text-anchor', 'start'))
+
+        this.chart.selectAll('lineTitle')
+        .data([this.region])
+        .enter()
+        .append('text')
+        .attr('x', 280)
+        .attr('y', -14)
+        .attr('class', 'title')
+        .style('fill', '#000000')
+        .text(d => `Region: ${d}`)
+        .attr('text-anchor', 'left')
+        .style('alignment-baseline', 'middle')
+        .style('font-size', '14px')
+        .style('opacity', 1)
 
         const size = 80
         this.chart.selectAll('myrects')
@@ -158,11 +174,15 @@ export default {
 
                 this.chart.selectAll('.label')
                 .style('opacity', 1)
-            } else {
-                d3.selectAll('.label-symbol').style('opacity', 0)
-                d3.selectAll('.label').style('opacity', 0)
 
-                d3.selectAll('.bar-chart-group-bar').remove()
+                this.chart.selectAll('.title')
+                .style('opacity', 0)
+            } else {
+                this.chart.selectAll('.label-symbol').style('opacity', 0)
+                this.chart.selectAll('.label').style('opacity', 0)
+                this.chart.selectAll('.title').style('opacity', 1)
+
+                this.chart.selectAll('.bar-chart-group-bar').remove()
 
                 this.chart.selectAll('.bar-chart-rect')
                 .data(this.data)

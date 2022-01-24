@@ -27,7 +27,7 @@
                         </b-row>
                         <b-row class="mr-0">
                             <b-card no-body>
-                                <BarChart :category="category" :data="barChartDataComputed" :selected="selected"/>
+                                <BarChart :category="category" :data="barChartDataComputed" :selected="selected" :region="default_region"/>
                             </b-card>
                         </b-row>
                     </b-col>
@@ -56,8 +56,6 @@ export default {
     data () {
         return {
             loading: true,
-            data: new Map(),
-            geoData: {},
             year: 2016,
             default_iso_codes: [ 'AUT' ],
             default_region: 'Western Europe',
@@ -67,15 +65,16 @@ export default {
             resetSelection: 0,
         }
     },
-    async mounted () {
-        sessionStorage.removeItem(SESSION_STORAGE_KEY)
-
-        this.loading = true
-        const [ , geo ] = await Promise.all([
-            await d3.csv('./human-freedom-index.csv', (d) => {
+    async asyncData() {
+        const csvHost = process.env.NODE_ENV === 'development'
+                        ? 'http://localhost:3000/'
+                        : process.env.PROD_URL
+        const data = new Map()
+        const [ , geoData ] = await Promise.all([
+            d3.csv(`${csvHost}human-freedom-index.csv`, (d) => {
                 const { year, ISO_code, countries, region, hf_score, pf_score, ef_score, ..._ } = d
 
-                const currentData = this.data.get(+year)
+                const currentData = data.get(+year)
                 const newData = [ {
                     iso: ISO_code,
                     country: countries,
@@ -85,14 +84,24 @@ export default {
                     ef_score: +ef_score,
                 } ]
                 if (!currentData) {
-                    this.data.set(+year, newData)
+                    data.set(+year, newData)
                 } else {
-                    this.data.set(+year, currentData.concat(newData))
+                    data.set(+year, currentData.concat(newData))
                 }
             }),
-            await d3.json('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
+            d3.json('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
         ])
-        this.geoData = geo
+
+        return {
+            data,
+            geoData,
+        }
+    },
+    async mounted () {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY)
+
+        this.loading = true
+
         this.loading = false
     },
     computed: {
