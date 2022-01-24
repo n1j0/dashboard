@@ -196,7 +196,7 @@ export default {
                 .attr('y', d => this.y(d[this.category]))
                 .attr('width', this.x.bandwidth())
                 .attr('height', d => this.height - this.y(d[this.category]))
-                .attr('fill', '#69b3a2')
+                .attr('fill', '#af7aa1')
             }
         }
     }

@@ -12,7 +12,7 @@ export const SESSION_STORAGE_KEY = 'countries'
 
 export const MAX_SELECTIONS = 4
 
-export const color = d3.scaleOrdinal().range(colors)
+export const color = d3.scaleOrdinal().range(d3.schemeSet2)
 
 export const colorBarChartGroups = d3.schemeDark2
 
