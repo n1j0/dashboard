@@ -50,7 +50,6 @@ export default {
             .domain([ 2008, 2016 ])
             .range([ 0, this.width ]),
             y: d3.scaleLinear()
-            .domain([ 0, 10 ])
             .range([ this.height, 0 ])
         }
     },
@@ -66,7 +65,7 @@ export default {
         .style('text-anchor', 'end')
 
         this.chart.append('g')
-        .call(d3.axisLeft(this.y))
+        .attr('class', 'myYaxis')
         .call(g => g.append('text')
         .attr('class', 'y-label')
         .attr('x', -margin.left + 45)
@@ -78,6 +77,20 @@ export default {
     },
     methods: {
         updateLineChart () {
+            const values = []
+            this.data.forEach(el => {
+                el.forEach(d => {
+                    values.push(d.d[this.category])
+                })
+            })
+            const min = +d3.min(values, d => d)
+            this.y.domain([ min === 0 ? min : min - 0.5, +d3.max(values, d => d) + 0.5 ])
+
+            this.chart.selectAll('.myYaxis')
+            .transition()
+            .duration(1000)
+            .call(d3.axisLeft(this.y).tickSizeOuter(0))
+
             this.chart.select('.y-label')
             .text(getSpeakableCategoryName(this.category))
 
