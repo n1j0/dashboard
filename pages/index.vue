@@ -1,12 +1,24 @@
 <template>
     <main v-if="!loading">
         <client-only>
-            <Toolbar :category="category" :year="year" @change-year="setYear" @change-category="setCategory" @reset="setToDefault"/>
+            <Toolbar :category="category" :year="year" @change-year="setYear" @change-category="setCategory"
+                     @reset="setToDefault"/>
             <b-container fluid>
                 <b-row>
                     <b-col cols="6">
                         <b-card no-body>
-                            <WorldMap :data="worldMapDataComputed" :geo-data="geoData" :category="category" :year="year" :resetSelection="resetSelection"
+                            <div class="hint position-absolute d-flex justify-content-center align-items-center">
+                                <span class="text-right mr-1">Click on a country<br/>to select it</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                            </div>
+                            <WorldMap :data="worldMapDataComputed" :geo-data="geoData" :category="category" :year="year"
+                                      :resetSelection="resetSelection"
                                       @select="triggerSelectedCountries"/>
                         </b-card>
                     </b-col>
@@ -27,7 +39,8 @@
                         </b-row>
                         <b-row class="mr-0">
                             <b-card no-body>
-                                <BarChart :category="category" :data="barChartDataComputed" :selected="selected" :region="default_region"/>
+                                <BarChart :category="category" :data="barChartDataComputed" :selected="selected"
+                                          :region="default_region"/>
                             </b-card>
                         </b-row>
                     </b-col>
@@ -65,13 +78,13 @@ export default {
             resetSelection: 0,
         }
     },
-    async asyncData() {
+    async asyncData () {
         const csvHost = process.env.NODE_ENV === 'development'
                         ? 'http://localhost:3000/'
                         : process.env.PROD_URL
         const data = new Map()
         const [ , geoData ] = await Promise.all([
-            d3.csv(`${csvHost}human-freedom-index.csv`, (d) => {
+            d3.csv(`${ csvHost }human-freedom-index.csv`, (d) => {
                 const { year, ISO_code, countries, region, hf_score, pf_score, ef_score, ..._ } = d
 
                 const currentData = data.get(+year)
@@ -130,7 +143,7 @@ export default {
         }
     },
     methods: {
-        setToDefault() {
+        setToDefault () {
             sessionStorage.removeItem(SESSION_STORAGE_KEY)
             this.year = 2016
             this.default_iso_codes = [ 'AUT' ]
@@ -174,5 +187,12 @@ main {
     height: 685px;
     max-height: 685px;
     overflow: hidden;
+}
+
+div.hint {
+    top: 1rem;
+    right: 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1;
 }
 </style>

@@ -4,7 +4,7 @@ export default {
 
     // Global page headers: https://go.nuxtjs.dev/config-head
     head: {
-        title: 'Human Freedom Dashboard',
+        title: 'Freedom Score Dashboard',
         htmlAttrs: {
             lang: 'en'
         },

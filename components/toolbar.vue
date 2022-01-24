@@ -66,6 +66,11 @@ export default {
                 <b-form-select v-model="selectedCategory" :options="categoryOptions" @change="$emit('change-category', selectedCategory)"></b-form-select>
             </b-nav-form>
         </b-navbar-nav>
+        <b-navbar-nav class="mx-auto">
+            <b-nav-text class="text-dark">
+                Freedom Score Dashboard
+            </b-nav-text>
+        </b-navbar-nav>
         <b-navbar-nav class="ml-auto">
             <b-nav-form>
                 <b-button variant="danger" @click="$emit('reset')">
