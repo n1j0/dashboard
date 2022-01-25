@@ -114,6 +114,7 @@ export default {
                 if (selected.split(',').length === MAX_SELECTIONS + 1) {
                     that.$bvToast.toast(`Please deselect a country first (max. ${MAX_SELECTIONS} countries).`, {
                         title: 'Too many countries',
+                        variant: 'warning',
                         autoHideDelay: 5000,
                     })
                     return
