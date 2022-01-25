@@ -8,7 +8,7 @@
                     <b-col cols="6">
                         <b-card no-body>
                             <div class="hint position-absolute d-flex justify-content-center align-items-center">
-                                <span class="text-right mr-1">Click on a country<br/>to select it</span>
+                                <span class="text-right mr-1">Click on a country<br/>to select it (up to 4)</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                                      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                      stroke-linejoin="round">
@@ -150,6 +150,7 @@ export default {
             this.default_region = 'Western Europe'
             this.category = 'hf_score'
             this.selected = false
+            this.iso_codes = []
             this.resetSelection++
         },
         setYear (year) {

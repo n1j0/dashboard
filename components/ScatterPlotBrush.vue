@@ -26,7 +26,7 @@ export default {
         iso_codes: {
             type: Array,
             required: true,
-        }
+        },
     },
     watch: {
         data () {
