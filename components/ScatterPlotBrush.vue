@@ -45,6 +45,7 @@ export default {
             xDomain: undefined,
             yDomain: undefined,
             brush: null,
+            observer: undefined,
         }
     },
     mounted () {
@@ -129,6 +130,20 @@ export default {
                 this.tooltip.style('opacity', 0)
             }
         }))
+
+        const brushedArea = document.querySelector('div#scatterPlot rect.selection')
+        this.observer = new MutationObserver((mutation) => {
+            if (mutation[0].target.style['0'] === 'display') {
+                this.resetBrush()
+            }
+        })
+
+        this.observer.observe(brushedArea, {
+            attributeFilter: ['style'],
+        })
+    },
+    beforeDestroy () {
+        this.observer.disconnect()
     },
     methods: {
         prepare () {
