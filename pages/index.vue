@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import ScatterPlot from '@/components/ScatterPlot'
+import ScatterPlot from '@/components/ScatterPlotBrush'
 import Toolbar from '@/components/toolbar'
 import * as d3 from 'd3'
 import BarChart from '~/components/BarChart'

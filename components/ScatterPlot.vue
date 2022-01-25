@@ -23,10 +23,6 @@ export default {
             type: Number,
             required: true,
         },
-        category: {
-            type: String,
-            required: true,
-        },
         iso_codes: {
             type: Array,
             required: true,
