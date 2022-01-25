@@ -30,7 +30,7 @@ export default {
     },
     watch: {
         data () {
-            this.resetBrush()
+            this.resetBrushAndTooltip()
             this.updateScatterPlot()
         },
     },
@@ -134,7 +134,7 @@ export default {
         const brushedArea = document.querySelector('div#scatterPlot rect.selection')
         this.observer = new MutationObserver((mutation) => {
             if (mutation[0].target.style['0'] === 'display') {
-                this.resetBrush()
+                this.resetBrushAndTooltip()
             }
         })
 
@@ -179,7 +179,7 @@ export default {
             .attr('r', this.radius)
         },
         highlight (event, d) {
-            this.resetBrush()
+            this.resetBrushAndTooltip()
             if (this.iso_codes.length === 0) {
                 const countries = this.data.filter(e => e.region === d).map(e => e['hf_score'])
                 const avg = countries.reduce((acc, next) => acc + next, 0)
@@ -203,8 +203,9 @@ export default {
                 y1 = brush_coords[1][1]
             return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1
         },
-        resetBrush() {
+        resetBrushAndTooltip() {
             this.brush.call(d3.brush().clear)
+            this.tooltip.style('opacity', 0)
         },
     },
 }
